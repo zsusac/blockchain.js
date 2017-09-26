@@ -1,0 +1,22 @@
+{
+  "name": "blockchain.js",
+  "version": "1.0.0",
+  "description": "Simple blockchain implemented in javascript",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "blockchain",
+    "javascript",
+    "node"
+  ],
+  "author": "Zvonimir Susac <susac.zvonimir@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^21.1.0"
+  },
+  "dependencies": {
+    "sha.js": "^2.4.9"
+  }
+}
