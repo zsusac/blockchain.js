@@ -28,3 +28,13 @@ test('Initilize multiple blockchain objects', () => {
 
   expect(lastBlockOne).toEqual(lastBlockTwo)
 })
+
+test('Create new block in blockchain', () => {
+  let blockchain = new Blockchain()
+  let newBlock = blockchain.createBlock(100, 'hash')
+
+  let newBlockchain = new Blockchain()
+  let lastBlock = newBlockchain.lastBlock()
+
+  expect(newBlock).toEqual(lastBlock)
+})

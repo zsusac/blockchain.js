@@ -4,16 +4,25 @@
   "description": "Simple blockchain implemented in javascript",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "coveralls": "cat coverage/lcov.info | ./node_modules/.bin/coveralls"
   },
   "keywords": [
     "blockchain",
     "javascript",
     "node"
   ],
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "coverageDirectory": "./coverage",
+    "collectCoverage": true
+  },
   "author": "Zvonimir Susac <susac.zvonimir@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "coveralls": "^2.13.1",
     "eslint-config-standard": "^10.2.1",
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-node": "^5.1.1",
