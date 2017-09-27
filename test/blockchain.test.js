@@ -25,4 +25,6 @@ test('Initilize multiple blockchain objects', () => {
   expect(lastBlockTwo.transactions).toEqual([])
   expect(lastBlockTwo.proof).toBe(100)
   expect(lastBlockTwo.previousHash).toBe(1)
+
+  expect(lastBlockOne).toEqual(lastBlockTwo)
 })

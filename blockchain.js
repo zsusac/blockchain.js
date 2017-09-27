@@ -29,16 +29,18 @@ class Blockchain {
   /**
    * Creates block in blockchain
    * 
-   * @param {any} proof         Proof Of Work
+   * @param {any} proof         Proof
    * @param {any} previousHash  Previous blockchain hash
    * @returns {object}          Returns created block
    * @memberof Blockchain
    */
   createBlock (proof, previousHash) {
+    previousHash = (typeof previousHash !== 'undefined') ? previousHash : this.createHash(chain[chain.length - 1])
     let block = BlockFactory(
       chain.length + 1,
       this.currentTransactions,
-      proof, previousHash || this.createHash(chain[chain.length - 1])
+      proof,
+      previousHash
     )
 
     this.currentTransactions = []
@@ -76,7 +78,7 @@ class Blockchain {
       orderedBlock[key] = block[key]
     })
 
-    return shajs('sha256').update('42').digest(JSON.stringify(orderedBlock))
+    return shajs('sha256').update(JSON.stringify(orderedBlock)).digest('hex')
   }
 
   /**
@@ -87,6 +89,37 @@ class Blockchain {
    */
   lastBlock () {
     return chain[chain.length - 1]
+  }
+
+  /**
+   * Simple Proof of Work Algorithm - Hashcash
+   * 
+   * @param {any} lastProof Last proof
+   * @returns {int}         Proof
+   * @memberof Blockchain
+   */
+  proofOfWork (lastProof) {
+    let proof = 0
+    while (!this.validProof(lastProof, proof)) {
+      proof += 1
+    }
+
+    return proof
+  }
+
+  /**
+   * Validates the Proof
+   * 
+   * @param {any} lastProof Last proof
+   * @param {any} proof     Proof
+   * @returns {bool}        Returns true if hash starts with "0000"
+   * @memberof Blockchain
+   */
+  validProof (lastProof, proof) {
+    let guess = `${lastProof}${proof}`
+    let guessHash = shajs('sha256').update(guess).digest('hex')
+
+    return guessHash.substring(0, 4) === '0000'
   }
 }
 

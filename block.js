@@ -15,7 +15,7 @@ class Block {
    */
   constructor (index, transactions, proof, previousHash) {
     this.index = index
-    this.timestamp = Math.floor(Date.now() / 1000)
+    this.timestamp = Date.now()
     this.transactions = transactions
     this.proof = proof
     this.previousHash = previousHash
