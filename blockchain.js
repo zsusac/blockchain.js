@@ -121,6 +121,66 @@ class Blockchain {
 
     return guessHash.substring(0, 4) === '0000'
   }
+
+  /**
+   * Check if provided blockchain is valid
+   * 
+   * @param {array} chain   Blockchain
+   * @returns {bool}        Returns true if chain is valid
+   * @memberof Blockchain
+   */
+  validChain (chain) {
+    let lastBlock = chain[0]
+    let index = 1
+    while (index < chain.length) {
+      let block = chain[index]
+      if (block.previousHash !== this.createHash(lastBlock)) {
+        return false
+      }
+
+      if (!this.validProof(lastBlock.proof, block.proof)) {
+        return false
+      }
+
+      lastBlock = block
+      index += 1
+    }
+
+    return true
+  }
+
+  /**
+   * Resolves conflicts by replacing our chain with the longest one in the network
+   * 
+   * @param {any} neighboringChains Array of other blockchains in the network
+   * @returns {bool} Returns true if our chain is replaced with neighboring chain
+   * @memberof Blockchain
+   */
+  resolveConflicts (neighboringChains) {
+    let newChain = false
+    let maxLength = chain.length
+    for (var index = 0; index < neighboringChains.length; ++index) {
+      let neighboringChain = neighboringChains[index]
+      let length = neighboringChain.length
+
+      if (length > maxLength && this.validChain(neighboringChain)) {
+        maxLength = length
+        newChain = neighboringChain
+      }
+    }
+
+    if (newChain) {
+      chain = newChain
+
+      return true
+    }
+
+    return false
+  }
+
+  chain () {
+    return chain
+  }
 }
 
 module.exports = Blockchain
