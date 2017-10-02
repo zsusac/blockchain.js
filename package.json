@@ -22,13 +22,18 @@
   "author": "Zvonimir Susac <susac.zvonimir@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "body-parser": "^1.18.2",
+    "connect": "^3.6.5",
     "coveralls": "^2.13.1",
     "eslint-config-standard": "^10.2.1",
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-node": "^5.1.1",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^3.0.1",
-    "jest": "^21.2.0"
+    "express": "^4.16.1",
+    "jest": "^21.2.0",
+    "request": "^2.83.0",
+    "yargs": "^9.0.1"
   },
   "dependencies": {
     "sha.js": "^2.4.9"
