@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/zsusac/blockchain.js.svg?branch=master)](https://travis-ci.org/zsusac/blockchain.js)
 [![Coverage Status](https://coveralls.io/repos/github/zsusac/blockchain.js/badge.svg?branch=master)](https://coveralls.io/github/zsusac/blockchain.js?branch=master)
+[![tested with jest](https://img.shields.io/badge/tested_with-jest-99424f.svg)](https://github.com/facebook/jest)
 
 # Introduction
 This repository implements simple blockchain using javascript programming language. It is inspired by following [article](https://hackernoon.com/learn-blockchains-by-building-one-117428612f46)
