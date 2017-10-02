@@ -40,6 +40,14 @@ app.get('/', (req, res) => {
           'href': `127.0.0.1:${argv.port}/chain`
         },
         {
+          'rel': 'transaction_new',
+          'href': `127.0.0.1:${argv.port}/transaction/new`
+        },
+        {
+          'rel': 'transaction_add',
+          'href': `127.0.0.1:${argv.port}/transaction/add`
+        },
+        {
           'rel': 'mine',
           'href': `127.0.0.1:${argv.port}/mine`
         },
@@ -102,12 +110,25 @@ app.get('/mine', (req, res, next) => {
 // Create new transaction and notify all neighbors (broadcast transaction)
 app.post('/transaction/new', (req, res) => {
   let newTransaction = req.body
-  console.log(newTransaction)
   if (newTransaction.sender !== undefined && newTransaction.recipient !== undefined && newTransaction.value !== undefined) {
     blockchain.addTranstacion(newTransaction.sender, newTransaction.recipient, newTransaction.value)
     broadcastTransaction(newTransaction)
 
-    return res.sendStatus(200)
+    return res.json(
+      {
+        'transactions': blockchain.transactions(),
+        'links': [
+          {
+            'rel': 'self',
+            'href': `127.0.0.1:${argv.port}/transaction/new/`
+          },
+          {
+            'rel': 'root',
+            'href': `127.0.0.1:${argv.port}`
+          }
+        ]
+      }
+    )
   }
 
   return res.sendStatus(400)
@@ -116,11 +137,24 @@ app.post('/transaction/new', (req, res) => {
 // Add broadcasted transaction to the blockchain
 app.post('/transaction/add', (req, res) => {
   let broadcastedTransaction = req.body
-  console.log(broadcastedTransaction)
   if (broadcastedTransaction.sender !== undefined && broadcastedTransaction.recipient !== undefined && broadcastedTransaction.value !== undefined) {    
     blockchain.addTranstacion(broadcastedTransaction.sender, broadcastedTransaction.recipient, broadcastedTransaction.value)
 
-    return res.sendStatus(200)
+    return res.json(
+      {
+        'transactions': blockchain.transactions(),
+        'links': [
+          {
+            'rel': 'self',
+            'href': `127.0.0.1:${argv.port}/transaction/add/`
+          },
+          {
+            'rel': 'root',
+            'href': `127.0.0.1:${argv.port}`
+          }
+        ]
+      }
+    )
   }
 
   return res.sendStatus(400)
@@ -150,16 +184,25 @@ app.post('/notify', (req, res) => {
   let remoteBlock = req.body
   let lastBlock = blockchain.lastBlock()
   if (remoteBlock.index > lastBlock.index) {
-    // Get blockchain from node that broadcasted new block
-    request(req.headers.broadcastorigin, (error, response, body) => {
-      console.log('error:', error)
-      let json = JSON.parse(body)
-      blockchain.resolveConflicts([json.chain])
+    res.on('finish', () => {
+      synchronize(req.headers.broadcastorigin)
     })
   }
 
   return res.sendStatus(200)
 })
+
+// Fetch neighbor blockchain and check consensus
+var synchronize = (remoteBlockchain) => {
+  request(remoteBlockchain, (error, response, body) => {
+    if (error) {
+      console.log('error', error)
+    }
+
+    let json = JSON.parse(body)
+    blockchain.resolveConflicts([json.chain])
+  })
+}
 
 // Send new block to all neighbors
 var broadcast = () => {
@@ -176,13 +219,13 @@ var broadcast = () => {
       (error, response, body) => {
         if (error) {
           console.log('error', error)
-          console.log('body', body)
         }
       }
     )
   })
 }
 
+// Send transaction to all neighbors
 var broadcastTransaction = (transaction) => {
   argv.neighbors.forEach((node, index) => {
     request.post(

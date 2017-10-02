@@ -4,8 +4,10 @@
 var shajs = require('sha.js')
 var BlockFactory = require('./blockFactory.js')
 
-// Blockchain
+// Blockchain (distributed ledger)
 var chain = []
+// Current transactions waiting to be written down in the blockchain
+var currentTransactions = []
 
 /**
  * Blockchain implementation
@@ -14,7 +16,6 @@ var chain = []
  */
 class Blockchain {
   constructor () {
-    this.currentTransactions = []
     if (chain.length === 0) {
       chain.push(
         BlockFactory(
@@ -38,12 +39,12 @@ class Blockchain {
     previousHash = (typeof previousHash !== 'undefined') ? previousHash : this.createHash(chain[chain.length - 1])
     let block = BlockFactory(
       chain.length + 1,
-      this.currentTransactions,
+      currentTransactions,
       proof,
       previousHash
     )
 
-    this.currentTransactions = []
+    currentTransactions = []
     chain.push(block)
 
     return block
@@ -58,7 +59,7 @@ class Blockchain {
    * @memberof Blockchain
    */
   addTranstacion (sender, recipient, value) {
-    this.currentTransactions.push({
+    currentTransactions.push({
       sender,
       recipient,
       value
@@ -178,8 +179,24 @@ class Blockchain {
     return false
   }
 
+  /**
+   * Return blockchain (distributed ledger)
+   * 
+   * @returns {array} Blockchain
+   * @memberof Blockchain
+   */
   chain () {
     return chain
+  }
+
+  /**
+   * Current transactions waiting to be written down in the blockchain
+   * 
+   * @returns {array} Current transactions
+   * @memberof Blockchain
+   */
+  transactions () {
+    return currentTransactions
   }
 }
 

@@ -27,7 +27,7 @@ Blockchain class methods *proofOfWork* and *validProof* implements Proof of Work
 Consensus algorithm ensures that all nodes in decentralized network reflect the same blockchain. Rule of Consensus algorithm is that the longest valid chain is authoritative.
 
 # Example
-Create http server to expose our blockchain  
+Create REST service to expose our blockchain over HTTP protocol 
 
 ```javascript
 var express = require('express')
@@ -70,6 +70,14 @@ app.get('/', (req, res) => {
         {
           'rel': 'chain',
           'href': `127.0.0.1:${argv.port}/chain`
+        },
+        {
+          'rel': 'transaction_new',
+          'href': `127.0.0.1:${argv.port}/transaction/new`
+        },
+        {
+          'rel': 'transaction_add',
+          'href': `127.0.0.1:${argv.port}/transaction/add`
         },
         {
           'rel': 'mine',
@@ -131,6 +139,59 @@ app.get('/mine', (req, res, next) => {
   )
 })
 
+// Create new transaction and notify all neighbors (broadcast transaction)
+app.post('/transaction/new', (req, res) => {
+  let newTransaction = req.body
+  if (newTransaction.sender !== undefined && newTransaction.recipient !== undefined && newTransaction.value !== undefined) {
+    blockchain.addTranstacion(newTransaction.sender, newTransaction.recipient, newTransaction.value)
+    broadcastTransaction(newTransaction)
+
+    return res.json(
+      {
+        'transactions': blockchain.transactions(),
+        'links': [
+          {
+            'rel': 'self',
+            'href': `127.0.0.1:${argv.port}/transaction/new/`
+          },
+          {
+            'rel': 'root',
+            'href': `127.0.0.1:${argv.port}`
+          }
+        ]
+      }
+    )
+  }
+
+  return res.sendStatus(400)
+})
+
+// Add broadcasted transaction to the blockchain
+app.post('/transaction/add', (req, res) => {
+  let broadcastedTransaction = req.body
+  if (broadcastedTransaction.sender !== undefined && broadcastedTransaction.recipient !== undefined && broadcastedTransaction.value !== undefined) {    
+    blockchain.addTranstacion(broadcastedTransaction.sender, broadcastedTransaction.recipient, broadcastedTransaction.value)
+
+    return res.json(
+      {
+        'transactions': blockchain.transactions(),
+        'links': [
+          {
+            'rel': 'self',
+            'href': `127.0.0.1:${argv.port}/transaction/add/`
+          },
+          {
+            'rel': 'root',
+            'href': `127.0.0.1:${argv.port}`
+          }
+        ]
+      }
+    )
+  }
+
+  return res.sendStatus(400)
+})
+
 // Return list of neighboring blockchains
 app.get('/neighbors', (req, res) => {
   res.json(
@@ -155,15 +216,25 @@ app.post('/notify', (req, res) => {
   let remoteBlock = req.body
   let lastBlock = blockchain.lastBlock()
   if (remoteBlock.index > lastBlock.index) {
-    request(req.headers.nodeblockchain, (error, response, body) => {
-      console.log('error:', error)
-      let json = JSON.parse(body)
-      blockchain.resolveConflicts([json.chain])
+    res.on('finish', () => {
+      synchronize(req.headers.broadcastorigin)
     })
   }
 
-  res.sendStatus(200)
+  return res.sendStatus(200)
 })
+
+// Fetch neighbor blockchain and check consensus
+var synchronize = (remoteBlockchain) => {
+  request(remoteBlockchain, (error, response, body) => {
+    if (error) {
+      console.log('error', error)
+    }
+
+    let json = JSON.parse(body)
+    blockchain.resolveConflicts([json.chain])
+  })
+}
 
 // Send new block to all neighbors
 var broadcast = () => {
@@ -172,11 +243,27 @@ var broadcast = () => {
       'http://' + node + '/notify',
       {
         json: blockchain.lastBlock(),
+        // Set address of node that broadcasted block
         headers: {
-          nodeBlockchain: `http://127.0.0.1:${argv.port}/chain`
+          broadcastorigin: `http://127.0.0.1:${argv.port}/chain`
         }
       },
-      function (error, response, body) {
+      (error, response, body) => {
+        if (error) {
+          console.log('error', error)
+        }
+      }
+    )
+  })
+}
+
+// Send transaction to all neighbors
+var broadcastTransaction = (transaction) => {
+  argv.neighbors.forEach((node, index) => {
+    request.post(
+      'http://' + node + '/transaction/add',
+      { json: transaction },
+      (error, response, body) => {
         if (error) {
           console.log('error', error)
         }
@@ -214,8 +301,28 @@ $ curl http://127.0.0.1:3001/chain
 {"chain":[{"index":1,"timestamp":1506944064254,"transactions":[],"proof":100,"previousHash":1},{"index":2,"timestamp":1506944085760,"transactions":[{"sender":0,"recipient":"me","value":1}],"proof":35293,"previousHash":"50777cbc3f3d232a5be6a7de00699edb97f3a0fa399ee16a191387f3ea001af1"}],"links":[{"rel":"self","href":"127.0.0.1:3001/chain"},{"rel":"root","href":"127.0.0.1:3001"}]}
 ```
 
-Executing previous commands, we see that blockchains in the peer to peer network are synchronized.
-  
+Executing previous commands, we see that blockchains in the peer to peer network are synchronized.  
+
+[Terminal Window 3]
+```
+$ curl -H "Content-Type: application/json" -X POST -d '{"sender": "Mark","recipient": "John","value": 100}' http://127.0.0.1:3000/transaction/new
+{"transactions":[{"sender":"Mark","recipient":"John","value":100}],"links":[{"rel":"self","href":"127.0.0.1:3000/transaction/new/"},{"rel":"root","href":"127.0.0.1:3000"}]}
+
+$ curl -H "Content-Type: application/json" -X POST -d '{"sender": "John","recipient": "Mark","value": 50}' http://127.0.0.1:3001/transaction/new
+{"transactions":[{"sender":"Mark","recipient":"John","value":100},{"sender":"John","recipient":"Mark","value":50}],"links":[{"rel":"self","href":"127.0.0.1:3001/transaction/new/"},{"rel":"root","href":"127.0.0.1:3001"}]}
+
+$ curl http://127.0.0.1:3000/mine
+{"block":{"index":2,"timestamp":1506966870878,"transactions":[{"sender":"Mark","recipient":"John","value":100},{"sender":"John","recipient":"Mark","value":50},{"sender":0,"recipient":"me","value":1}],"proof":35293,"previousHash":"782134ab9e021aaf7ff370b2a149a1d82fd87b44b5374d7ccea51a9cb3755365"},"links":[{"rel":"self","href":"127.0.0.1:3000/mine"},{"rel":"root","href":"127.0.0.1:3000"}]}
+
+$ curl http://127.0.0.1:3001/chain
+{"chain":[{"index":1,"timestamp":1506966743710,"transactions":[],"proof":100,"previousHash":1},{"index":2,"timestamp":1506966870878,"transactions":[{"sender":"Mark","recipient":"John","value":100},{"sender":"John","recipient":"Mark","value":50},{"sender":0,"recipient":"me","value":1}],"proof":35293,"previousHash":"782134ab9e021aaf7ff370b2a149a1d82fd87b44b5374d7ccea51a9cb3755365"}],"links":[{"rel":"self","href":"127.0.0.1:3001/chain"},{"rel":"root","href":"127.0.0.1:3001"}]}
+
+$ curl http://127.0.0.1:3000/chain
+{"chain":[{"index":1,"timestamp":1506966743710,"transactions":[],"proof":100,"previousHash":1},{"index":2,"timestamp":1506966870878,"transactions":[{"sender":"Mark","recipient":"John","value":100},{"sender":"John","recipient":"Mark","value":50},{"sender":0,"recipient":"me","value":1}],"proof":35293,"previousHash":"782134ab9e021aaf7ff370b2a149a1d82fd87b44b5374d7ccea51a9cb3755365"}],"links":[{"rel":"self","href":"127.0.0.1:3000/chain"},{"rel":"root","href":"127.0.0.1:3000"}]}
+```
+
+Every new transaction is added to the local blockchain and broadcasted to the neighbor nodes. Node that first creates a new block, writes down current transactions in that block. You can see how that works by executing previous commands.  
+
 # Tests
 ```
 npm run test

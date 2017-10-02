@@ -1,6 +1,7 @@
 /* global test, expect */
 
 var Blockchain = require('../blockchain.js')
+var Miner = require('../miner.js')
 
 test('Initilize blockchain object', () => {
   let blockchain = new Blockchain()
@@ -37,4 +38,17 @@ test('Create new block in blockchain', () => {
   let lastBlock = newBlockchain.lastBlock()
 
   expect(newBlock).toEqual(lastBlock)
+})
+
+test('Get current transactions', () => {
+  let blockchain = new Blockchain()
+  let miner = new Miner(blockchain)
+
+  expect(blockchain.transactions()).toEqual([])
+  blockchain.addTranstacion('Mark', 'John', 100)
+  expect(blockchain.transactions().length).toBe(1)
+  blockchain.addTranstacion('John', 'Mark', 100)
+  expect(blockchain.transactions().length).toBe(2)
+  miner.mine()
+  expect(blockchain.transactions()).toEqual([])
 })
