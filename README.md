@@ -190,7 +190,7 @@ Run two instances of blockchain node severs on localhost and different port
 [Terminal Window 1]
 ```
 $ node nodeServer.js --port 3000 --neighbors 127.0.0.1:3001
-Blockchain Node Server started at 127.0.0.1:3001
+Blockchain Node Server started at 127.0.0.1:3000
 ```
 
 [Terminal Window 2]
