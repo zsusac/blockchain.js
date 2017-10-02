@@ -99,6 +99,33 @@ app.get('/mine', (req, res, next) => {
   )
 })
 
+// Create new transaction and notify all neighbors (broadcast transaction)
+app.post('/transaction/new', (req, res) => {
+  let newTransaction = req.body
+  console.log(newTransaction)
+  if (newTransaction.sender !== undefined && newTransaction.recipient !== undefined && newTransaction.value !== undefined) {
+    blockchain.addTranstacion(newTransaction.sender, newTransaction.recipient, newTransaction.value)
+    broadcastTransaction(newTransaction)
+
+    return res.sendStatus(200)
+  }
+
+  return res.sendStatus(400)
+})
+
+// Add broadcasted transaction to the blockchain
+app.post('/transaction/add', (req, res) => {
+  let broadcastedTransaction = req.body
+  console.log(broadcastedTransaction)
+  if (broadcastedTransaction.sender !== undefined && broadcastedTransaction.recipient !== undefined && broadcastedTransaction.value !== undefined) {    
+    blockchain.addTranstacion(broadcastedTransaction.sender, broadcastedTransaction.recipient, broadcastedTransaction.value)
+
+    return res.sendStatus(200)
+  }
+
+  return res.sendStatus(400)
+})
+
 // Return list of neighboring blockchains
 app.get('/neighbors', (req, res) => {
   res.json(
@@ -123,14 +150,15 @@ app.post('/notify', (req, res) => {
   let remoteBlock = req.body
   let lastBlock = blockchain.lastBlock()
   if (remoteBlock.index > lastBlock.index) {
-    request(req.headers.nodeblockchain, (error, response, body) => {
+    // Get blockchain from node that broadcasted new block
+    request(req.headers.broadcastorigin, (error, response, body) => {
       console.log('error:', error)
       let json = JSON.parse(body)
       blockchain.resolveConflicts([json.chain])
     })
   }
 
-  res.sendStatus(200)
+  return res.sendStatus(200)
 })
 
 // Send new block to all neighbors
@@ -140,11 +168,27 @@ var broadcast = () => {
       'http://' + node + '/notify',
       {
         json: blockchain.lastBlock(),
+        // Set address of node that broadcasted block
         headers: {
-          nodeBlockchain: `http://127.0.0.1:${argv.port}/chain`
+          broadcastorigin: `http://127.0.0.1:${argv.port}/chain`
         }
       },
-      function (error, response, body) {
+      (error, response, body) => {
+        if (error) {
+          console.log('error', error)
+          console.log('body', body)
+        }
+      }
+    )
+  })
+}
+
+var broadcastTransaction = (transaction) => {
+  argv.neighbors.forEach((node, index) => {
+    request.post(
+      'http://' + node + '/transaction/add',
+      { json: transaction },
+      (error, response, body) => {
         if (error) {
           console.log('error', error)
         }
