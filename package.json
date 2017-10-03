@@ -32,6 +32,7 @@
     "eslint-plugin-standard": "^3.0.1",
     "express": "^4.16.1",
     "jest": "^21.2.0",
+    "jsonfile": "^4.0.0",
     "request": "^2.83.0",
     "yargs": "^9.0.1"
   },

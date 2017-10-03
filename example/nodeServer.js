@@ -1,5 +1,6 @@
 var express = require('express')
 var request = require('request')
+var jsonfile = require('jsonfile')
 var bodyParser = require('body-parser')
 var Blockchain = require('../index.js').Blockchain
 var Miner = require('../index.js').Miner
@@ -18,6 +19,7 @@ const help = require('yargs')
   .help()
   .argv
 var neighbors = argv.neighbors
+var file = `./blockchain${argv.port}.json`
 
 var blockchain = new Blockchain()
 var miner = new Miner(blockchain)
@@ -233,6 +235,7 @@ var synchronize = (remoteBlockchain) => {
     let json = JSON.parse(body)
     blockchain.resolveConflicts([json.chain])
   })
+  writeToFile()
 }
 
 // Send new block to all neighbors
@@ -254,6 +257,7 @@ var broadcast = () => {
       }
     )
   })
+  writeToFile()
 }
 
 // Send transaction to all neighbors
@@ -268,5 +272,12 @@ var broadcastTransaction = (transaction) => {
         }
       }
     )
+  })
+}
+
+// Write blockchain to file
+var writeToFile = () => {
+  jsonfile.writeFile(file, blockchain.chain(), function (err) {
+    console.error(err)
   })
 }
