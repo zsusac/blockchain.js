@@ -17,6 +17,7 @@ const help = require('yargs')
   .demandOption(['port', 'neighbors'], 'Please provide port and neighbors arguments')
   .help()
   .argv
+var neighbors = argv.neighbors
 
 var blockchain = new Blockchain()
 var miner = new Miner(blockchain)
@@ -54,6 +55,10 @@ app.get('/', (req, res) => {
         {
           'rel': 'neighbors',
           'href': `127.0.0.1:${argv.port}/neighbors`
+        },
+        {
+          'rel': 'neighbors_add',
+          'href': `127.0.0.1:${argv.port}/neighbors/add`
         },
         {
           'rel': 'notify',
@@ -164,11 +169,37 @@ app.post('/transaction/add', (req, res) => {
 app.get('/neighbors', (req, res) => {
   res.json(
     {
-      'neighbors': argv.neighbors,
+      'neighbors': neighbors,
       'links': [
         {
           'rel': 'self',
           'href': `127.0.0.1:${argv.port}/neighbors`
+        },
+        {
+          'rel': 'root',
+          'href': `127.0.0.1:${argv.port}`
+        }
+      ]
+    }
+  )
+})
+
+// Add new neighbor
+app.post('/neighbors/add', (req, res) => {
+  let newNeighbors = req.body
+  if (newNeighbors.neighbors !== undefined && newNeighbors.neighbors.constructor === Array) {
+    newNeighbors.neighbors.forEach(newNeighbor => {
+      neighbors.push(newNeighbor)
+    })
+  }
+
+  res.json(
+    {
+      'neighbors': neighbors,
+      'links': [
+        {
+          'rel': 'self',
+          'href': `127.0.0.1:${argv.port}/neighbors/add`
         },
         {
           'rel': 'root',
@@ -206,7 +237,7 @@ var synchronize = (remoteBlockchain) => {
 
 // Send new block to all neighbors
 var broadcast = () => {
-  argv.neighbors.forEach((node, index) => {
+  neighbors.forEach((node, index) => {
     request.post(
       'http://' + node + '/notify',
       {
@@ -227,7 +258,7 @@ var broadcast = () => {
 
 // Send transaction to all neighbors
 var broadcastTransaction = (transaction) => {
-  argv.neighbors.forEach((node, index) => {
+  neighbors.forEach((node, index) => {
     request.post(
       'http://' + node + '/transaction/add',
       { json: transaction },
