@@ -49,6 +49,6 @@ test('Get current transactions', () => {
   expect(blockchain.transactions().length).toBe(1)
   blockchain.addTranstacion('John', 'Mark', 100)
   expect(blockchain.transactions().length).toBe(2)
-  miner.mine()
+  miner.mine('someAddress')
   expect(blockchain.transactions()).toEqual([])
 })

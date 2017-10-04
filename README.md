@@ -27,31 +27,61 @@ Blockchain class methods *proofOfWork* and *validProof* implements Proof of Work
 Consensus algorithm ensures that all nodes in decentralized network reflect the same blockchain. Rule of Consensus algorithm is that the longest valid chain is authoritative.
 
 # Example
-Create REST service to expose our blockchain over HTTP protocol 
+Create a server with REST service to expose blockchain over HTTP protocol. Every instance of this server represents a full node. Full nodes can mine new blocks and receive new transactions. New blocks and transactions are bradcasted to neighboring full nodes. Full nodes use *Consensus algorithm* to replicate distributed ledger (blockchain). 
 
 ```javascript
 var express = require('express')
 var request = require('request')
+var jsonfile = require('jsonfile')
 var bodyParser = require('body-parser')
 var Blockchain = require('../index.js').Blockchain
 var Miner = require('../index.js').Miner
 
+// Define command arguments and help message
 const argv = require('yargs').array('neighbors').argv
 const help = require('yargs')
   .option('port', {
     alias: 'p',
     describe: 'Node port'
   })
+  .option('walletAddress', {
+    alias: 'w',
+    describe: 'Wallet address'
+  })
   .option('neighbors', {
     alias: 'n',
     describe: 'Node neighbors'
   })
-  .demandOption(['port', 'neighbors'], 'Please provide port and neighbors arguments')
+  .demandOption(['port', 'walletAddress', 'neighbors'], 'Please provide port, wallet address and neighbors arguments')
   .help()
   .argv
 
+// Get neighbors from command argument
+var neighbors = argv.neighbors
+// Miner's wallet address
+var walletAddress = argv.walletAddress
+
+// Define blockchain file
+var file = `./blockchain${argv.port}.json`
+
+// Instantiate blockchain object
 var blockchain = new Blockchain()
+
+// Write blockchain to file function
+var writeToFile = () => {
+  jsonfile.writeFile(file, blockchain.chain(), function (err) {
+    if (err) {
+      console.error(err)
+    }
+  })
+}
+
+// Write blockchain with genesis block (first block) to file
+writeToFile()
+
+// Instantiate miner object
 var miner = new Miner(blockchain)
+
 var app = express()
 app.use(bodyParser.json())
 
@@ -86,6 +116,10 @@ app.get('/', (req, res) => {
         {
           'rel': 'neighbors',
           'href': `127.0.0.1:${argv.port}/neighbors`
+        },
+        {
+          'rel': 'neighbors_add',
+          'href': `127.0.0.1:${argv.port}/neighbors/add`
         },
         {
           'rel': 'notify',
@@ -124,7 +158,7 @@ app.get('/mine', (req, res, next) => {
 
   res.json(
     {
-      'block': miner.mine(),
+      'block': miner.mine(walletAddress),
       'links': [
         {
           'rel': 'self',
@@ -196,11 +230,37 @@ app.post('/transaction/add', (req, res) => {
 app.get('/neighbors', (req, res) => {
   res.json(
     {
-      'neighbors': argv.neighbors,
+      'neighbors': neighbors,
       'links': [
         {
           'rel': 'self',
           'href': `127.0.0.1:${argv.port}/neighbors`
+        },
+        {
+          'rel': 'root',
+          'href': `127.0.0.1:${argv.port}`
+        }
+      ]
+    }
+  )
+})
+
+// Add new neighbor
+app.post('/neighbors/add', (req, res) => {
+  let newNeighbors = req.body
+  if (newNeighbors.neighbors !== undefined && newNeighbors.neighbors.constructor === Array) {
+    newNeighbors.neighbors.forEach(newNeighbor => {
+      neighbors.push(newNeighbor)
+    })
+  }
+
+  res.json(
+    {
+      'neighbors': neighbors,
+      'links': [
+        {
+          'rel': 'self',
+          'href': `127.0.0.1:${argv.port}/neighbors/add`
         },
         {
           'rel': 'root',
@@ -232,18 +292,22 @@ var synchronize = (remoteBlockchain) => {
     }
 
     let json = JSON.parse(body)
-    blockchain.resolveConflicts([json.chain])
+
+    // Write new blockchain to the file
+    if (blockchain.resolveConflicts([json.chain])) {
+      writeToFile()
+    }
   })
 }
 
 // Send new block to all neighbors
 var broadcast = () => {
-  argv.neighbors.forEach((node, index) => {
+  neighbors.forEach((node, index) => {
     request.post(
       'http://' + node + '/notify',
       {
         json: blockchain.lastBlock(),
-        // Set address of node that broadcasted block
+        // Set address of node that broadcasted new block
         headers: {
           broadcastorigin: `http://127.0.0.1:${argv.port}/chain`
         }
@@ -255,11 +319,13 @@ var broadcast = () => {
       }
     )
   })
+  // Write blockchain with the new block to the file
+  writeToFile()
 }
 
 // Send transaction to all neighbors
 var broadcastTransaction = (transaction) => {
-  argv.neighbors.forEach((node, index) => {
+  neighbors.forEach((node, index) => {
     request.post(
       'http://' + node + '/transaction/add',
       { json: transaction },
@@ -273,17 +339,17 @@ var broadcastTransaction = (transaction) => {
 }
 ```
 
-Run two instances of blockchain node severs on localhost and different port  
+Run two instances of blockchain node severs on localhost and different ports
 
 [Terminal Window 1]
 ```
-$ node nodeServer.js --port 3000 --neighbors 127.0.0.1:3001
+$ node nodeServer.js --port 3000 --walletAddress minersWalletOne --neighbors 127.0.0.1:3001
 Blockchain Node Server started at 127.0.0.1:3000
 ```
 
 [Terminal Window 2]
 ```
-$ node nodeServer.js --port 3001 --neighbors 127.0.0.1:3000
+$ node nodeServer.js --port 3001 --walletAddress minersWalletTwo --neighbors 127.0.0.1:3000
 Blockchain Node Server started at 127.0.0.1:3001
 ```
 

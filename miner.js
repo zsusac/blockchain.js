@@ -17,14 +17,15 @@ class Miner {
   /**
    * Mine
    * 
+   * @param {string} recipientAddress Recipient address
    * @returns {Block} Mined block 
    * @memberof Miner
    */
-  mine () {
+  mine (recipientAddress) {
     let lastBlock = this.blockchain.lastBlock()
     let lastProof = lastBlock.proof
     let proof = this.blockchain.proofOfWork(lastProof)
-    this.blockchain.addTranstacion(0, 'me', 1)
+    this.blockchain.addTranstacion('', recipientAddress, 1)
 
     return this.blockchain.createBlock(proof)
   }
