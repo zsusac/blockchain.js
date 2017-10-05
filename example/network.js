@@ -105,16 +105,20 @@ setTimeout(() => {
     console.log(`Mine ${randomNode.name} stdout: ${mine.stdout.toString()}`)
   }
 
-  // Compare distributed ledgers (blockchains)
-  let blockchain3000 = JSON.parse(fs.readFileSync('blockchain3000.json', 'utf8'))
-  let blockchain3001 = JSON.parse(fs.readFileSync('blockchain3001.json', 'utf8'))
-  let blockchain3002 = JSON.parse(fs.readFileSync('blockchain3002.json', 'utf8'))
-  let blockchain3003 = JSON.parse(fs.readFileSync('blockchain3003.json', 'utf8'))
-  let blockchain3004 = JSON.parse(fs.readFileSync('blockchain3004.json', 'utf8'))
-  console.log('Peer-to-Peer Network reflects the same blockchain? ',
-    JSON.stringify(blockchain3000) === JSON.stringify(blockchain3001) &&
-    JSON.stringify(blockchain3000) === JSON.stringify(blockchain3002) &&
-    JSON.stringify(blockchain3000) === JSON.stringify(blockchain3003) &&
-    JSON.stringify(blockchain3000) === JSON.stringify(blockchain3004)
-  )
+  console.log('\n Comparing blockchains... \n')
+  setTimeout(() => {
+    // Compare distributed ledgers (blockchains)
+    let blockchain3000 = JSON.parse(fs.readFileSync('blockchain3000.json', 'utf8'))
+    let blockchain3001 = JSON.parse(fs.readFileSync('blockchain3001.json', 'utf8'))
+    let blockchain3002 = JSON.parse(fs.readFileSync('blockchain3002.json', 'utf8'))
+    let blockchain3003 = JSON.parse(fs.readFileSync('blockchain3003.json', 'utf8'))
+    let blockchain3004 = JSON.parse(fs.readFileSync('blockchain3004.json', 'utf8'))
+    console.log('Peer-to-Peer Network reflects the same blockchain? ',
+      JSON.stringify(blockchain3000) === JSON.stringify(blockchain3001) &&
+      JSON.stringify(blockchain3000) === JSON.stringify(blockchain3002) &&
+      JSON.stringify(blockchain3000) === JSON.stringify(blockchain3003) &&
+      JSON.stringify(blockchain3000) === JSON.stringify(blockchain3004)
+    )
+    process.exit()
+  }, 5000)
 }, 5000)
