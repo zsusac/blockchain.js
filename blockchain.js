@@ -172,6 +172,8 @@ class Blockchain {
 
     if (newChain) {
       chain = newChain
+      // Clear current transactions to reduce possibility to write same transaction in two consecutive blocks
+      currentTransactions = []
 
       return true
     }
